@@ -30,8 +30,6 @@ import requests
 from tqdm import tqdm
 from dotenv import dotenv_values
 
-config = dotenv_values(".env")
-
 # MongoDB & Flask application
 import pymongo
 from flask import Flask, request, jsonify, render_template
@@ -43,32 +41,8 @@ import certifi
 # Schema definitions
 import definitions
 
-# Spawning GraphQL client to query MongoDB cluster0.
-import graphene
-from graphene.relay import Node
-from graphene_mongo import MongoengineConnectionField, MongoengineObjectType
 
-
-
-# Retrieval of available feature extraction models from huggingface.
-#import search_data_labs
-
-
-class Users(MongoengineObjectType):
-    class Meta:
-        description = "Users/products for miscellaneous tasks."
-        model = definitions.Users
-        interfaces = (Node,)
-
-
-class Query(graphene.ObjectType):
-    node = Node.Field()
-    all_users = MongoengineConnectionField(Users)
-
-
-schema = graphene.Schema(query=Query, types=[Users])
 num_summaries = 0
-app = Flask(__name__)
 
 sm_nlp = spacy.load("en_core_web_sm")
 entities = set(sm_nlp.get_pipe("ner").labels)
@@ -248,22 +222,17 @@ Inputs: feature_extraction, bert-base-uncased.
 '''
 
 
-@app.route('/get_embeddings/<name>/<model_id>/<using_api>/', methods=["GET"])
 def get_embeddings(name,model_id, using_api=False):
     # https://huggingface.co/blog/getting-started-with-embeddings
     # Modification where we use huggingface api instead of bert tokenizer.
     
-    #model_id = request.args.get("model_id")
-    usr_collection = database["users"]
+    usr_collection = database["documents"]
     
     txt_to_embeddings = pipeline("feature-extraction", model=model_id)
 
-    
-    #api_url = config["HF_API_URL"]+model_id
-    headers = {"Authorization": config["AUTHORIZATION_HEADER"]}
     tokenizer = AutoTokenizer.from_pretrained(model_id) 
     resp = usr_collection.find_one({"name":name})
-    print(f"Got response: {resp}")
+    print(resp)
     doc = sm_nlp(resp["description"])
     relevant_lists = dict()
     for sent in doc.sents:
@@ -288,7 +257,6 @@ def get_embeddings(name,model_id, using_api=False):
     return json.loads(json_util.dumps(resp))
 
 
-@app.route("/get_available_models/<index>/<keyword>/<limit>/", methods=["GET"])
 def get_available_models(index, keyword, limit):
     '''
     get_available_models searches through our elasticsearch index to 
@@ -299,8 +267,9 @@ def get_available_models(index, keyword, limit):
     keyword = " ".join(keyword.split("_"))
     resp = search_client.find_keyword(index, keyword, int(limit))
     return json.loads(json_util.dumps(resp))
+
 #curl -H "Content-type: application/json" -X POST "/add_ml_feature/feature_1/3/3/1/1/[A]/"  
-@app.route("/get_data_infra/<sample_size>/")
+
 def get_data_infra(sample_size=None):
     if sample_size is None:
         usr_collection = database["ml"]
@@ -308,7 +277,7 @@ def get_data_infra(sample_size=None):
         print(records)
  
 
-@app.route("/add_ml_feature/<name>/<memory>/<gain>/<compressed_memory>/<compressed_gain>/<available_services>/", methods=["POST"])
+
 def put_ml_feature(name, memory, gain,compressed_memory,compressed_gain,available_services):
     usr_collection = database["ml"]    
     new_ml_feature = {"name": name, "memory": float(memory),
@@ -329,7 +298,7 @@ along with functional endpoints.
 
 
 
-@app.route("/", methods=["POST"])
+
 def post_input_data():
     item_name = request.form['name']
     item_id = request.form["id"]
@@ -354,7 +323,7 @@ of nlp and recommendation applications.
 the full item entry.
 '''
 
-@app.route('/get_product/<name>/', methods=['GET'])
+
 def get_product(name):
     col = database["users"]
     records = list(col.find({"name":name}))
@@ -378,7 +347,6 @@ description, product id, and price need to be specified.
 duplicates in database).
 '''
 
-@app.route("/add_product/<name>/<desc>/<prod_id>/<price>/", methods=["POST"])
 def put_users(name, desc, prod_id, price):
     product_weight = request.args.get("weight")
     has_been_added = False
@@ -391,7 +359,6 @@ def put_users(name, desc, prod_id, price):
     print(usr_collection.insert_one(new_user))
     return json.loads(json_util.dumps(new_user))
 
-@app.route("/delete_product/<name>/<_id>/", methods=["GET","DELETE"])
 def delete_product(name,_id):
     usr_collection = database["users"]
     query_prompt = {"name":name,"id": int(_id)}
@@ -408,7 +375,6 @@ def delete_product(name,_id):
 :return: json response of the new user being updated.
 '''
 
-@app.route("/update_product/<name>/<desc>/<prod_id>/<price>/", methods=["PUT"])
 def update_users(name, desc, prod_id, price):
     product_weight = request.args.get("weight")
     usr_collection = database["users"]
@@ -430,6 +396,7 @@ if __name__ == "__main__":
                              tlsCAFile=certifi.where())
 
     database = client['test']
+    '''
     api = Api(app)
 
     app.config["TEMPLATES_AUTO_RELOAD"] = True
@@ -438,6 +405,4 @@ if __name__ == "__main__":
         'host':'localhost',
         'port': 5000
     }
-    app.add_url_rule('/graphql', view_func=GraphQLView.as_view('graphql', schema=schema, graphiql=True))
-    socketio.run(app, host='0.0.0.0', port=80, debug=True)
-    #app.run()
+    '''
