@@ -55,7 +55,7 @@ def parse(raw_content, title):
         for sent in api.sm_nlp(new_section).sents:
             for token in sent:
                 str_token = str(token)
-                if not str_token in word_set and str_token[0].islower() and\
+                if str_token not in word_set and str_token[0].islower() and\
 		   str_token[-1] != "." and str_token[0] != ".":
                     non_existent_word = True
                     break
