@@ -69,7 +69,6 @@ class Query(graphene.ObjectType):
 schema = graphene.Schema(query=Query, types=[Users])
 num_summaries = 0
 app = Flask(__name__)
-socketio = SocketIO(app, cors_allowed_origins="*")
 
 sm_nlp = spacy.load("en_core_web_sm")
 entities = set(sm_nlp.get_pipe("ner").labels)
