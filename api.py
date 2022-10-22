@@ -46,6 +46,8 @@ num_summaries = 0
 
 sm_nlp = spacy.load("en_core_web_sm")
 entities = set(sm_nlp.get_pipe("ner").labels)
+app = Flask(__name__)
+
 #search_client = search_data_labs.Search(config["CLOUD_ID"], config["ELASTIC_PASSWORD"])
 
 #txt_to_embeddings = pipeline('feature-extraction', model="bert-base-uncased")
@@ -221,7 +223,7 @@ shift a sliding window of that length.
 Inputs: feature_extraction, bert-base-uncased.
 '''
 
-
+@app.route('/get_embeddings/<name>/<model_id>/<using_api>/', methods=["GET"])
 def get_embeddings(name,model_id, using_api=False):
     # https://huggingface.co/blog/getting-started-with-embeddings
     # Modification where we use huggingface api instead of bert tokenizer.
@@ -323,7 +325,7 @@ of nlp and recommendation applications.
 the full item entry.
 '''
 
-
+@app.route('/get_product/<name>/', methods=['GET'])
 def get_product(name):
     col = database["users"]
     records = list(col.find({"name":name}))
@@ -396,7 +398,7 @@ if __name__ == "__main__":
                              tlsCAFile=certifi.where())
 
     database = client['test']
-    '''
+    
     api = Api(app)
 
     app.config["TEMPLATES_AUTO_RELOAD"] = True
@@ -405,4 +407,4 @@ if __name__ == "__main__":
         'host':'localhost',
         'port': 5000
     }
-    '''
+    app.run()
