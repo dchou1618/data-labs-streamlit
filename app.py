@@ -9,6 +9,16 @@ def landing_page():
         and load balancing on optimally storing large data for ML models.
         """
     )
+    feature = st.selectbox("What toolkit feature do you want to try out?",
+              ("Embedding Evaluation","Load Balancing Large Data"),
+ 	      index=0)
+    if feature == "Embedding Evaluation":
+        model_url = st.text_input("Huggingface Model URL")
+        text_to_test_embeddings = st.text_area("Text to Test"+\
+                                   "Feature Extraction Embeddings",
+                                   '''This is example text.''')
+    else:
+        pass
 
 if __name__ == "__main__":
     landing_page()

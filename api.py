@@ -326,10 +326,6 @@ along with functional endpoints.
 :return: a jsonified dictionary of the
 '''
 
-@app.route('/',methods=['GET'])
-def get_main_msg():
-    return render_template("index.html", title="home page")
-
 
 
 
