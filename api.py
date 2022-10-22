@@ -48,10 +48,6 @@ import graphene
 from graphene.relay import Node
 from graphene_mongo import MongoengineConnectionField, MongoengineObjectType
 
-# given streaming user input, we retrieve data from a shared kafka topic that 
-# references data from MongoDB and ElasticSearch.
-from kafka import KafkaConsumer, KafkaProducer, TopicPartition
-from flask_socketio import SocketIO, emit
 
 
 # Retrieval of available feature extraction models from huggingface.
