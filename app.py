@@ -2,7 +2,7 @@ import streamlit as st
 import api
 
 def landing_page():
-    st.write("# Welcome to the ML model preparation tool!")
+    st.write("# ML model preparation tool")
     st.markdown(
         """
         Data Labs' NLP toolkit has two features: embedding evaluation 
@@ -10,13 +10,12 @@ def landing_page():
         """
     )
     feature = st.selectbox("What toolkit feature do you want to try out?",
-              ("Embedding Evaluation","Load Balancing Large Data"),
- 	      index=0)
+              ("Embedding Evaluation","Load Balancing Large Data"))
     if feature == "Embedding Evaluation":
         model_url = st.text_input("Huggingface Model URL")
-        text_to_test_embeddings = st.text_area("Text to Test"+\
+        text_to_test_embeddings = st.text_area("Text to Test "+\
                                    "Feature Extraction Embeddings",
-                                   '''This is example text.''')
+                                   '''''')
     else:
         pass
 
