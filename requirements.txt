@@ -155,15 +155,14 @@ soupsieve==2.3.2.post1
 spacy==3.3.1
 spacy-legacy==3.0.9
 spacy-loggers==1.0.2
-streamlit==1.9.0
 SQLAlchemy==1.4.36
 srsly==2.4.3
 stack-data==0.3.0
 starlette==0.13.6
-tensorboard==2.9.1
+tensorboard==2.10.1
 tensorboard-data-server==0.6.1
 tensorboard-plugin-wit==1.8.1
-tensorflow==2.9.1
+tensorflow==2.10.1
 tensorflow-estimator==2.9.0
 tensorflow-io-gcs-filesystem==0.26.0
 termcolor==1.1.0
