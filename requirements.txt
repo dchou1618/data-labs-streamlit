@@ -126,7 +126,6 @@ Pygments==2.12.0
 pymongo==4.1.1
 Pympler==1.0.1
 pyparsing==3.0.9
-pyq @ file:///Users/dylanchou/Desktop/pyq
 pyrsistent==0.18.1
 python-dateutil==2.8.2
 python-dotenv==0.20.0
