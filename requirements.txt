@@ -4,3 +4,4 @@ spacy==3.4.2
 wikipedia==1.4.0
 english-words==1.1.0
 num2words==0.5.12
+bson==0.5.10
