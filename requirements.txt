@@ -77,7 +77,7 @@ jupyter-client==7.3.4
 jupyter-core==4.11.1
 jupyterlab-pygments==0.2.2
 kafka-python==2.0.2
-keras==2.9.0
+keras==2.10.0
 Keras-Preprocessing==1.1.2
 langcodes==3.3.0
 libclang==14.0.1
