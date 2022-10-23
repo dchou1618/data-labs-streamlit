@@ -1,6 +1,7 @@
 import streamlit as st
 import base64
 import pymongo
+import certifi
 import api
 
 def landing_page():
