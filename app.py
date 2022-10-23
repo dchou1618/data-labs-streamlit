@@ -25,8 +25,8 @@ def landing_page():
         text_to_test_embeddings = st.text_area("Text to Test "+\
                                    "Feature Extraction Embeddings",
                                    '''''')
-        if len(text_to_test_embeddings) > 0:
-            st.json(api.get_embeddings(None,model_url, database, text_to_test_embeddings))
+        if len(text_to_test_embeddings) > 0 and len(model_url) > 0:
+            st.json(api.get_embeddings(None,model_url, database, description=text_to_test_embeddings))
     else:
         pass
 
