@@ -261,7 +261,10 @@ def get_embeddings(name,model_id, database, using_api=False, **kwargs):
                 if len(relevant_contents) > 0:
                     relevant_lists[str(token)] = relevant_contents
     relevant_lists = embedding_dim_reduction(relevant_lists)
-    resp["relevant_lists_wsd"] = relevant_lists    
+    if resp is None:
+        resp = {"model_id":model_id,"description":kwargs["description"],"relevant_lists_wsd": relevant_lists}
+    else:
+        resp["relevant_lists_wsd"] = relevant_lists    
     return json.loads(json_util.dumps(resp))
 
 
