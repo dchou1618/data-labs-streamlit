@@ -223,8 +223,8 @@ shift a sliding window of that length.
 Inputs: feature_extraction, bert-base-uncased.
 '''
 
-@app.route('/get_embeddings/<name>/<model_id>/<using_api>/', methods=["GET"])
-def get_embeddings(name,model_id, using_api=False):
+#@app.route('/get_embeddings/<name>/<model_id>/<using_api>/', methods=["GET"])
+def get_embeddings(name,model_id, database, using_api=False):
     # https://huggingface.co/blog/getting-started-with-embeddings
     # Modification where we use huggingface api instead of bert tokenizer.
     
@@ -325,7 +325,7 @@ of nlp and recommendation applications.
 the full item entry.
 '''
 
-@app.route('/get_product/<name>/', methods=['GET'])
+#@app.route('/get_product/<name>/', methods=['GET'])
 def get_product(name):
     col = database["users"]
     records = list(col.find({"name":name}))
@@ -392,6 +392,7 @@ def update_users(name, desc, prod_id, price):
 
 
 if __name__ == "__main__":
+    '''
     p = base64.b64decode("YnJkMzgyMjM=").decode("utf-8")
     client_url = f"mongodb+srv://dchou_admin:{p}@cluster0.4l7x9tz.mongodb.net/?retryWrites=true&w=majority"
     client = pymongo.MongoClient(client_url,
@@ -408,3 +409,5 @@ if __name__ == "__main__":
         'port': 5000
     }
     app.run()
+    '''
+    pass
