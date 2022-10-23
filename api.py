@@ -224,7 +224,7 @@ Inputs: feature_extraction, bert-base-uncased.
 '''
 
 #@app.route('/get_embeddings/<name>/<model_id>/<using_api>/', methods=["GET"])
-def get_embeddings(name,model_id, database, using_api=False):
+def get_embeddings(name,model_id, database, using_api=False, **kwargs):
     # https://huggingface.co/blog/getting-started-with-embeddings
     # Modification where we use huggingface api instead of bert tokenizer.
     
@@ -234,8 +234,14 @@ def get_embeddings(name,model_id, database, using_api=False):
 
     tokenizer = AutoTokenizer.from_pretrained(model_id) 
     resp = usr_collection.find_one({"name":name})
-    print(resp)
-    doc = sm_nlp(resp["description"])
+    print("Response",resp)
+    if resp is None:
+        if "description" in kwargs:
+            doc = sm_nlp(kwargs["description"])
+        else:
+            assert False, "specify description."
+    else:
+        doc = sm_nlp(resp["description"])
     relevant_lists = dict()
     for sent in doc.sents:
         for token in sent:
