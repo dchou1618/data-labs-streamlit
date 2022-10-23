@@ -1,4 +1,4 @@
-streamlit==1.8.0
+streamlit==1.8.1
 transformers==4.23.1
 spacy==3.3.1
 wikipedia==1.4.0
