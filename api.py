@@ -228,7 +228,7 @@ import logging
 def get_embeddings(name,model_id, database, using_api=False, **kwargs):
     # https://huggingface.co/blog/getting-started-with-embeddings
     # Modification where we use huggingface api instead of bert tokenizer.
-    
+    logging.info("Running get_embeddings...\n")
     usr_collection = database["documents"]
     
     txt_to_embeddings = pipeline("feature-extraction", model=model_id)
@@ -247,12 +247,12 @@ def get_embeddings(name,model_id, database, using_api=False, **kwargs):
     for sent in doc.sents:
         for token in sent:
             #token_embedding = query_model_id(str(token), api_url, headers)
+            logging.info("Document: "+doc.text+"\n\n")
             token_embedding = txt_to_embeddings(doc.text)[0]
-            logging.warning(str(token_embedding))
             if token.ent_type_ in entities or token.pos_ in {"NOUN"}:
                 global num_summaries 
                 num_summaries = 0
-                
+                logging.info("Token: "+str(token)+"\n\n")
                 relevant_contents = iterate_over_wiki_instances(token_embedding, str(token),
                                                                 str(token), 20, {"api_url":api_url,\
                                                                 "headers":headers,"tokenizer":tokenizer})\
