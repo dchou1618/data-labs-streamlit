@@ -222,6 +222,7 @@ shift a sliding window of that length.
 
 Inputs: feature_extraction, bert-base-uncased.
 '''
+import logging
 
 #@app.route('/get_embeddings/<name>/<model_id>/<using_api>/', methods=["GET"])
 def get_embeddings(name,model_id, database, using_api=False, **kwargs):
@@ -234,7 +235,7 @@ def get_embeddings(name,model_id, database, using_api=False, **kwargs):
 
     tokenizer = AutoTokenizer.from_pretrained(model_id) 
     resp = usr_collection.find_one({"name":name})
-    print("Response",resp)
+    logging.warning(str(resp))
     if resp is None:
         if "description" in kwargs:
             doc = sm_nlp(kwargs["description"])
@@ -246,7 +247,8 @@ def get_embeddings(name,model_id, database, using_api=False, **kwargs):
     for sent in doc.sents:
         for token in sent:
             #token_embedding = query_model_id(str(token), api_url, headers)
-            token_embedding = txt_to_embeddings(str(token))[0]
+            token_embedding = txt_to_embeddings(doc.text)[0]
+            logging.warning(str(token_embedding))
             if token.ent_type_ in entities or token.pos_ in {"NOUN"}:
                 global num_summaries 
                 num_summaries = 0
