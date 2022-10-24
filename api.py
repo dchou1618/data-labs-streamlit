@@ -29,6 +29,7 @@ import numpy as np
 import requests
 from tqdm import tqdm
 from dotenv import dotenv_values
+from transformers import AutoTokenizer
 
 # MongoDB & Flask application
 import pymongo
@@ -46,7 +47,7 @@ num_summaries = 0
 
 sm_nlp = spacy.load("en_core_web_sm")
 entities = set(sm_nlp.get_pipe("ner").labels)
-app = Flask(__name__)
+#app = Flask(__name__)
 
 #search_client = search_data_labs.Search(config["CLOUD_ID"], config["ELASTIC_PASSWORD"])
 
@@ -145,14 +146,17 @@ def embedding_dim_reduction(token_dict):
                                                                res[i:(i+num_embeds)]))
             token_content["original_title"] = relevant_contents[1]
             token_content["word_of_interest"] = relevant_contents[2]
-            token_content["tokenized_passage"] = relevant_contents[4][0]
+            token_content["tokenized_passage"] = relevant_contents[4]
             token_contents.append(token_content)
             i += num_embeds
         reduced_vectors[token] = token_contents
     
     return reduced_vectors
 
-def iterate_over_wiki_instances(title_embedding,original_title, word, max_num, args, auto_suggest=False):
+ 
+
+
+def iterate_over_wiki_instances(title_embedding,original_title, word, max_num, seen_pages, args, auto_suggest=False):
     '''
     iterate_over_wiki_instances goes over all available contexts of a word 
     and obtains their embeddings. Per embedding, it's composed of N+2 embedding
@@ -160,9 +164,11 @@ def iterate_over_wiki_instances(title_embedding,original_title, word, max_num, a
     end tokens: <s> and </s>.
     '''
     summaries = []
+    print(word)
     global num_summaries
-    if (num_summaries > max_num):
+    if (num_summaries > max_num or word in seen_pages or len(seen_pages) > 50):
         return []
+    seen_pages.add(word)
     try:
         curr_page = wikipedia.page(word, auto_suggest=auto_suggest)
         content = parse_wiki_content.parse(curr_page.content, word.lower())
@@ -173,23 +179,26 @@ def iterate_over_wiki_instances(title_embedding,original_title, word, max_num, a
                 resp = args["txt_to_embeddings"](passage)
             print_array(resp)
             passage_embedding = np.array(resp[0])
-            
-            tokenized_passage = args["tokenizer"].tokenize(passage)
+            tokenized_passage = sm_nlp(passage)
+            passage_embedding = average_pooling(tokenized_passage, passage_embedding, args["tokenizer"])
+            # tokenized_passage = args["tokenizer"].tokenize(passage)
             # tuples of (token_position, embedding)
             token_embeddings = []
             i = 0
             for token in tokenized_passage:
                 if str(token).lower() == original_title.lower():
-                    token_embeddings.append((i,passage_embedding[i+1,:]))
+                    print("Found token position for",str(token))
+                    token_embeddings.append((i,passage_embedding[i]))
                 i += 1
             if len(token_embeddings) > 0:
-                summaries.append([title_embedding,original_title, word, [passage], [tokenized_passage], token_embeddings])
-                
+                summaries.append([title_embedding,original_title, word, [passage],
+                                     [token.text for token in tokenized_passage], token_embeddings])
+        # print("Content: ",content)        
     except wikipedia.exceptions.DisambiguationError as e:
         summaries = []
         try: 
             for title in e.options:
-                summaries += iterate_over_wiki_instances(title_embedding, original_title, title, max_num, args)
+                summaries += iterate_over_wiki_instances(title_embedding, original_title, title, max_num, seen_pages, args)
                 
         except Exception as e1:
             print("Last exception:",e1)
@@ -200,6 +209,41 @@ def iterate_over_wiki_instances(title_embedding,original_title, word, max_num, a
 def query_model_id(text, api_url, headers):
     r = requests.post(api_url, headers=headers, json={"inputs": text, "options":{"wait_for_model":True}})
     return r.json()
+
+
+def average_pooling(doc, token_embeddings, tokenizer):
+    '''
+    average_pooling - applies mean pooling to multiple BPE
+    embeddings associated with the same token.
+    :param doc spacy.Doc: the document (list of sentences)
+    :param tokenizer transformers.models: 
+    :return: 
+    '''
+    embeddings = []
+    tokenizer_bpe = tokenizer(doc.text,
+                        return_offsets_mapping=True)["offset_mapping"]
+    i = 0
+    for token in doc:
+        start = token.idx
+        end = start+len(token.text)
+        if i == len(tokenizer_bpe):
+            break
+        curr_range = tokenizer_bpe[i]
+        first_embedding = i
+        while i < len(tokenizer_bpe) and curr_range[1] <= end:
+            curr_range = tokenizer_bpe[i]
+            # print("current range and start/end index: ",curr_range,start,end)
+            i+=1
+            if curr_range[1] == curr_range[0]:
+                first_embedding = i
+        i-=1
+        last_embedding = i
+        curr_embeddings = token_embeddings[first_embedding:last_embedding]
+        # print("Pooling indices: ", token, len(curr_embeddings), first_embedding, last_embedding)
+        mean_pooled_embedding = np.sum(curr_embeddings,axis=0)/len(curr_embeddings)
+        embeddings.append(mean_pooled_embedding)
+        
+    return embeddings
 
 '''
 :brief: get_embeddings uses embeddings trained at the same time as 
@@ -224,16 +268,13 @@ Inputs: feature_extraction, bert-base-uncased.
 '''
 import logging
 
-#@app.route('/get_embeddings/<name>/<model_id>/<using_api>/', methods=["GET"])
 def get_embeddings(name,model_id, database, using_api=False, **kwargs):
     # https://huggingface.co/blog/getting-started-with-embeddings
     # Modification where we use huggingface api instead of bert tokenizer.
-    logging.info("Running get_embeddings...\n")
     usr_collection = database["documents"]
     
     txt_to_embeddings = pipeline("feature-extraction", model=model_id)
 
-    tokenizer = AutoTokenizer.from_pretrained(model_id) 
     resp = usr_collection.find_one({"name":name})
     logging.warning(str(resp))
     if resp is None:
@@ -244,27 +285,34 @@ def get_embeddings(name,model_id, database, using_api=False, **kwargs):
     else:
         doc = sm_nlp(resp["description"])
     relevant_lists = dict()
+    token_embeddings = txt_to_embeddings(doc.text)[0]
+    tokenizer = AutoTokenizer.from_pretrained(model_id)
+    token_embeddings = average_pooling(doc, token_embeddings, tokenizer)
+    # print(len(token_embeddings), [len(embed) for embed in token_embeddings])
     for sent in doc.sents:
         for token in sent:
             #token_embedding = query_model_id(str(token), api_url, headers)
-            logging.info("Document: "+doc.text+"\n\n")
-            token_embedding = txt_to_embeddings(doc.text)[0]
+            # print("Document: "+doc.text+"\n\n")
+            token_embedding = token_embeddings[token.i]
+            # print("Token Embedding: ",len(token_embedding), token.i)
             if token.ent_type_ in entities or token.pos_ in {"NOUN"}:
                 global num_summaries 
                 num_summaries = 0
-                logging.info("Token: "+str(token)+"\n\n")
+                # print("Token: "+str(token)+"\n\n")
                 relevant_contents = iterate_over_wiki_instances(token_embedding, str(token),
-                                                                str(token), 20, {"api_url":api_url,\
+                                                                str(token), 20, set(), {"api_url":api_url,\
                                                                 "headers":headers,"tokenizer":tokenizer})\
                                     if (bool(using_api)) else\
                                     iterate_over_wiki_instances(token_embedding, str(token),
-                                                                str(token), 20, {"tokenizer":tokenizer,\
+                                                               str(token), 20, set(), {"tokenizer":tokenizer,\
                                                                 "txt_to_embeddings":txt_to_embeddings})
                 if len(relevant_contents) > 0:
                     relevant_lists[str(token)] = relevant_contents
+    # print(relevant_lists)
     relevant_lists = embedding_dim_reduction(relevant_lists)
     if resp is None:
-        resp = {"model_id":model_id,"description":kwargs["description"],"relevant_lists_wsd": relevant_lists}
+        resp = {"model_id":model_id,"description":kwargs["description"],
+               "description_embeddings":token_embeddings,"relevant_lists_wsd": relevant_lists}
     else:
         resp["relevant_lists_wsd"] = relevant_lists    
     return json.loads(json_util.dumps(resp))
@@ -422,3 +470,11 @@ if __name__ == "__main__":
     app.run()
     '''
     pass
+    '''
+    p = base64.b64decode("YnJkMzgyMjM=").decode("utf-8")
+    client_url = f"mongodb+srv://dchou_admin:{p}@cluster0.4l7x9tz.mongodb.net/?retryWrites=true&w=majority"
+    client = pymongo.MongoClient(client_url,
+                          tlsCAFile=certifi.where())
+    database = client['test']
+    print(get_embeddings(None,"allenai/specter", database, description="Lichfield Cathedral, in Lichfield, Staffordshire, is the only medieval English cathedral with three spires."))
+    '''
