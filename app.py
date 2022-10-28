@@ -21,14 +21,19 @@ def landing_page():
                           tlsCAFile=certifi.where())
         database = client['test']
         model_url = st.selectbox("Huggingface Model",
-("allenai/specter","xlnet-base-cased",\
+("Select a Model","allenai/specter","xlnet-base-cased",\
         "bert-base-cased", "roberta-large","facebook/contriever-msmarco"))
-        document_name = st.selectbox("Document Name", ("Another option", "None"))
-        text_to_test_embeddings = st.text_area("Text to Test "+\
+        if model_url != "Select a Model":
+            document_name = st.selectbox("Retrieve personal documents from MongoDB?", ("Login", "None"))
+            if document_name == "None":
+                text_to_test_embeddings = st.text_area("Text to Test "+\
                                    "Feature Extraction Embeddings",
                                    '''''')
-        if len(text_to_test_embeddings) > 0 and len(model_url) > 0:
-            st.json(api.get_embeddings(None,model_url, database, description=text_to_test_embeddings))
+                if len(text_to_test_embeddings) > 0 and len(model_url) > 0:
+                    st.json(api.get_embeddings(None,model_url, database, description=text_to_test_embeddings))
+                    text_to_test_embeddings = ""
+            else:
+                pass
     else:
         pass
 

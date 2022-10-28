@@ -164,7 +164,7 @@ def iterate_over_wiki_instances(title_embedding,original_title, word, max_num, s
     end tokens: <s> and </s>.
     '''
     summaries = []
-    print(word)
+    print(original_title, word)
     global num_summaries
     if (num_summaries > max_num or word in seen_pages or len(seen_pages) > 50):
         return []
@@ -173,6 +173,7 @@ def iterate_over_wiki_instances(title_embedding,original_title, word, max_num, s
         #curr_page = wikipedia.page(word, auto_suggest=auto_suggest)
         #content = parse_wiki_content.parse(curr_page.content, word.lower())
         content = wikipedia.summary(sm_nlp(word)[0].lemma_, sentences=5).split("\n")
+        print(content)
         '''
         print("##############")
         print(f"Word: {word}, {sm_nlp(word)[0].lemma_}",
@@ -195,7 +196,7 @@ def iterate_over_wiki_instances(title_embedding,original_title, word, max_num, s
             token_embeddings = []
             i = 0
             for token in tokenized_passage:
-                if str(token).lower() == original_title.lower():
+                if sm_nlp(str(token).lower())[0].lemma_ == sm_nlp(original_title.lower())[0].lemma_:
                     print("Found token position for",str(token))
                     token_embeddings.append((i,passage_embedding[i]))
                 i += 1
@@ -477,11 +478,11 @@ if __name__ == "__main__":
     app.run()
     '''
     pass
-    ''' 
+    
     p = base64.b64decode("YnJkMzgyMjM=").decode("utf-8")
     client_url = f"mongodb+srv://dchou_admin:{p}@cluster0.4l7x9tz.mongodb.net/?retryWrites=true&w=majority"
     client = pymongo.MongoClient(client_url,
                           tlsCAFile=certifi.where())
     database = client['test']
     get_embeddings(None,"allenai/specter", database, description="Lichfield Cathedral, in Lichfield, Staffordshire, is the only medieval English cathedral with three spires.")
-    '''
+    
