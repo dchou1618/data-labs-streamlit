@@ -29,9 +29,10 @@ def landing_page():
                 text_to_test_embeddings = st.text_area("Text to Test "+\
                                    "Feature Extraction Embeddings",
                                    '''''')
-                clicked = st.form_submit_button("Run Word Sense Disambiguation Evaluation Over Embeddings")
-                if len(text_to_test_embeddings) > 0 and len(model_url) > 0 and clicked:
-                    st.json(api.get_embeddings(None,model_url, database, description=text_to_test_embeddings))
+                with st.form("run_get_embeddings"):
+                    clicked = st.form_submit_button("Run Word Sense Disambiguation Evaluation Over Embeddings")
+                    if len(text_to_test_embeddings) > 0 and len(model_url) > 0 and clicked:
+                        st.json(api.get_embeddings(None,model_url, database, description=text_to_test_embeddings))
             else:
                 pass
     else:
