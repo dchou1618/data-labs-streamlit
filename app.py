@@ -20,8 +20,10 @@ def landing_page():
         client = pymongo.MongoClient(client_url,
                           tlsCAFile=certifi.where())
         database = client['test']
-        model_url = st.text_input("Huggingface Model URL")
-        document_name = st.selectbox("Document Name", ("Another option"))
+        model_url = st.text_input("Huggingface Model",
+("allenai/specter","xlnet-base-cased",\
+        "bert-base-cased", "roberta-large","facebook/contriever-msmarco"))
+        document_name = st.selectbox("Document Name", ("Another option", "None"))
         text_to_test_embeddings = st.text_area("Text to Test "+\
                                    "Feature Extraction Embeddings",
                                    '''''')

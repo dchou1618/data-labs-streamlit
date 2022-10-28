@@ -170,8 +170,17 @@ def iterate_over_wiki_instances(title_embedding,original_title, word, max_num, s
         return []
     seen_pages.add(word)
     try:
-        curr_page = wikipedia.page(word, auto_suggest=auto_suggest)
-        content = parse_wiki_content.parse(curr_page.content, word.lower())
+        #curr_page = wikipedia.page(word, auto_suggest=auto_suggest)
+        #content = parse_wiki_content.parse(curr_page.content, word.lower())
+        content = wikipedia.summary(sm_nlp(word)[0].lemma_, sentences=5).split("\n")
+        '''
+        print("##############")
+        print(f"Word: {word}, {sm_nlp(word)[0].lemma_}",
+              wikipedia.summary(sm_nlp(word)[0].lemma_, sentences=5).split("\n"))
+        print("-----------------")
+        print(content)
+        print("##############")
+        ''' 
         for passage in content:
             if "api_url" in args:
                 resp = query_model_id(passage, args["api_url"], args["headers"])
@@ -329,8 +338,6 @@ def get_available_models(index, keyword, limit):
     resp = search_client.find_keyword(index, keyword, int(limit))
     return json.loads(json_util.dumps(resp))
 
-#curl -H "Content-type: application/json" -X POST "/add_ml_feature/feature_1/3/3/1/1/[A]/"  
-
 def get_data_infra(sample_size=None):
     if sample_size is None:
         usr_collection = database["ml"]
@@ -470,11 +477,11 @@ if __name__ == "__main__":
     app.run()
     '''
     pass
-    '''
+    ''' 
     p = base64.b64decode("YnJkMzgyMjM=").decode("utf-8")
     client_url = f"mongodb+srv://dchou_admin:{p}@cluster0.4l7x9tz.mongodb.net/?retryWrites=true&w=majority"
     client = pymongo.MongoClient(client_url,
                           tlsCAFile=certifi.where())
     database = client['test']
-    print(get_embeddings(None,"allenai/specter", database, description="Lichfield Cathedral, in Lichfield, Staffordshire, is the only medieval English cathedral with three spires."))
+    get_embeddings(None,"allenai/specter", database, description="Lichfield Cathedral, in Lichfield, Staffordshire, is the only medieval English cathedral with three spires.")
     '''
