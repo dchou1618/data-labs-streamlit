@@ -20,7 +20,7 @@ def landing_page():
         client = pymongo.MongoClient(client_url,
                           tlsCAFile=certifi.where())
         database = client['test']
-        model_url = st.text_input("Huggingface Model",
+        model_url = st.selectbox("Huggingface Model",
 ("allenai/specter","xlnet-base-cased",\
         "bert-base-cased", "roberta-large","facebook/contriever-msmarco"))
         document_name = st.selectbox("Document Name", ("Another option", "None"))
