@@ -128,9 +128,9 @@ def embedding_dim_reduction(token_dict):
 
     X = np.reshape(np.array(overall_vectors), (M,N))
     R = np.random.choice(a=[np.sqrt(3), 0, -1*np.sqrt(3)], 
-    			 size=(M//128,M), 
+    			 size=(M//256,M), 
                          replace=True, p=[2/3,1/6,1/6])
-    res = np.reshape(np.matmul(R,X), (N,M//128))
+    res = np.reshape(np.matmul(R,X), (N,M//256))
     # N 6-length vectors
     reduced_vectors = dict()
     # i - tracks the current index in
@@ -164,7 +164,7 @@ def iterate_over_wiki_instances(title_embedding,original_title, word, max_num, s
     end tokens: <s> and </s>.
     '''
     summaries = []
-    print(original_title, word)
+    #print(original_title, word, sm_nlp(word)[0].lemma_)
     global num_summaries
     if (num_summaries > max_num or word in seen_pages or len(seen_pages) > 50):
         return []
@@ -172,8 +172,13 @@ def iterate_over_wiki_instances(title_embedding,original_title, word, max_num, s
     try:
         #curr_page = wikipedia.page(word, auto_suggest=auto_suggest)
         #content = parse_wiki_content.parse(curr_page.content, word.lower())
-        content = wikipedia.summary(sm_nlp(word)[0].lemma_, sentences=5).split("\n")
-        print(content)
+        using_lemma = False
+        try:
+            content = wikipedia.summary(sm_nlp(word)[0].lemma_, sentences=5).split("\n")
+            using_lemma = True
+        except:
+            content = wikipedia.summary(word, sentences=5).split("\n")
+        #print(f"#### Works {original_title}, {word} \n\n",content,"\n\n####")
         '''
         print("##############")
         print(f"Word: {word}, {sm_nlp(word)[0].lemma_}",
@@ -196,7 +201,10 @@ def iterate_over_wiki_instances(title_embedding,original_title, word, max_num, s
             token_embeddings = []
             i = 0
             for token in tokenized_passage:
-                if sm_nlp(str(token).lower())[0].lemma_ == sm_nlp(original_title.lower())[0].lemma_:
+                lower_token = str(token).lower()
+                lower_original = original_title.lower()
+                if ((sm_nlp(lower_token)[0].lemma_ == sm_nlp(lower_original)[0].lemma_) if\
+                    using_lemma else lower_token == lower_original):
                     print("Found token position for",str(token))
                     token_embeddings.append((i,passage_embedding[i]))
                 i += 1
@@ -205,6 +213,7 @@ def iterate_over_wiki_instances(title_embedding,original_title, word, max_num, s
                                      [token.text for token in tokenized_passage], token_embeddings])
         # print("Content: ",content)        
     except wikipedia.exceptions.DisambiguationError as e:
+        print("Error: ",e,original_title, word, sm_nlp(word)[0].lemma_)
         summaries = []
         try: 
             for title in e.options:
@@ -304,8 +313,9 @@ def get_embeddings(name,model_id, database, using_api=False, **kwargs):
             #token_embedding = query_model_id(str(token), api_url, headers)
             # print("Document: "+doc.text+"\n\n")
             token_embedding = token_embeddings[token.i]
-            # print("Token Embedding: ",len(token_embedding), token.i)
-            if token.ent_type_ in entities or token.pos_ in {"NOUN"}:
+
+            #print(token, token.ent_type_, entities, token.pos_)
+            if token.ent_type_ in entities or token.pos_ in {"NOUN", "ADJ"}:
                 global num_summaries 
                 num_summaries = 0
                 # print("Token: "+str(token)+"\n\n")
@@ -478,11 +488,11 @@ if __name__ == "__main__":
     app.run()
     '''
     pass
-    
+    '''   
     p = base64.b64decode("YnJkMzgyMjM=").decode("utf-8")
     client_url = f"mongodb+srv://dchou_admin:{p}@cluster0.4l7x9tz.mongodb.net/?retryWrites=true&w=majority"
     client = pymongo.MongoClient(client_url,
                           tlsCAFile=certifi.where())
     database = client['test']
     get_embeddings(None,"allenai/specter", database, description="Lichfield Cathedral, in Lichfield, Staffordshire, is the only medieval English cathedral with three spires.")
-    
+    '''
