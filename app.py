@@ -12,9 +12,9 @@ def extract_files(file_type):
     for file in fs:
         try:
             if file_type == "XLSX":
-                dfs.append(pd.read_excel(file.name, "None"))
+                dfs.append(pd.read_excel(file, "None"))
             else:
-                dfs.append(pd.read_csv(file.name))
+                dfs.append(pd.read_csv(file))
         except Exception as e:
             print(e)
             st.warning("Invalid File Type")
