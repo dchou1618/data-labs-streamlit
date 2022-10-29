@@ -338,24 +338,6 @@ def get_embeddings(name,model_id, database, using_api=False, **kwargs):
     return json.loads(json_util.dumps(resp))
 
 
-def get_available_models(index, keyword, limit):
-    '''
-    get_available_models searches through our elasticsearch index to 
-    find huggingface models that are relevant to a specified keyword,
-    where query results are limited to "limit".
-    '''
-    index = "-".join(index.split("_"))
-    keyword = " ".join(keyword.split("_"))
-    resp = search_client.find_keyword(index, keyword, int(limit))
-    return json.loads(json_util.dumps(resp))
-
-def get_data_infra(sample_size=None):
-    if sample_size is None:
-        usr_collection = database["ml"]
-        records = usr_collection.find({})
-        print(records)
- 
-
 
 def put_ml_feature(name, memory, gain,compressed_memory,compressed_gain,available_services):
     usr_collection = database["ml"]    
@@ -368,11 +350,6 @@ def put_ml_feature(name, memory, gain,compressed_memory,compressed_gain,availabl
     print(usr_collection.insert_one(new_ml_feature))
     return json.loads(json_util.dumps(new_ml_feature))
 
-'''
-:brief: get_main_msg - the home page of the API that provides background on how to use the API
-along with functional endpoints.
-:return: a jsonified dictionary of the
-'''
 
 
 
@@ -469,24 +446,6 @@ def update_users(name, desc, prod_id, price):
 
 
 if __name__ == "__main__":
-    '''
-    p = base64.b64decode("YnJkMzgyMjM=").decode("utf-8")
-    client_url = f"mongodb+srv://dchou_admin:{p}@cluster0.4l7x9tz.mongodb.net/?retryWrites=true&w=majority"
-    client = pymongo.MongoClient(client_url,
-                             tlsCAFile=certifi.where())
-
-    database = client['test']
-    
-    api = Api(app)
-
-    app.config["TEMPLATES_AUTO_RELOAD"] = True
-    app.config["MONGODB_SETTINGS"] = {
-        'db': "ml",
-        'host':'localhost',
-        'port': 5000
-    }
-    app.run()
-    '''
     pass
     '''   
     p = base64.b64decode("YnJkMzgyMjM=").decode("utf-8")

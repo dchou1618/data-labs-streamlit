@@ -2,7 +2,25 @@ import streamlit as st
 import base64
 import pymongo
 import certifi
+import pandas as pd
+import plotly.express as px
 import api
+
+def extract_files(file_type):
+    fs = st.file_uploader("Upload file with features", accept_multiple_files=True)
+    dfs = []
+    for file in fs:
+        try:
+            if file_type == "XLSX":
+                dfs.append(pd.read_excel(file.name, "None"))
+            else:
+                dfs.append(pd.read_csv(file.name))
+        except Exception as e:
+            print(e)
+            st.warning("Invalid File Type")
+            return None
+    return dfs
+
 
 def landing_page():
     st.write("# ML model preparation tool")
@@ -26,17 +44,39 @@ def landing_page():
         if model_url != "Select a Model":
             document_name = st.selectbox("Retrieve personal documents from MongoDB?", ("Login", "None"))
             if document_name == "None":
-                text_to_test_embeddings = st.text_area("Text to Test "+\
+                with st.form("run_get_embeddings"):
+                    
+                    text_to_test_embeddings = st.text_area("Text to Test "+\
                                    "Feature Extraction Embeddings",
                                    '''''')
-                with st.form("run_get_embeddings"):
+                    
                     clicked = st.form_submit_button("Run Word Sense Disambiguation Evaluation Over Embeddings")
                     if len(text_to_test_embeddings) > 0 and len(model_url) > 0 and clicked:
-                        st.json(api.get_embeddings(None,model_url, database, description=text_to_test_embeddings))
+                        output = api.get_embeddings(None,model_url, database, description=text_to_test_embeddings)
+                        df = {"dim1":[],"dim2":[],"dim3":[],"label":[],"context":[]}
+                        for word in output["relevant_lists_wsd"]:
+                            for vect in output["relevant_lists_wsd"][word]:  
+                                 for index, reduced_vect in vect["reduced_context_embeddings"]:
+                                     df["dim1"].append(reduced_vect[0])
+                                     df["dim2"].append(reduced_vect[1])
+                                     df["dim3"].append(reduced_vect[2])
+                                     df["label"].append(word.lower())
+                                     df["context"].append(vect["tokenized_passage"])
+                        df = pd.DataFrame(df)
+                        fig = px.scatter_3d(df, x="dim1",y="dim2",z="dim3",color="label")
+                        st.plotly_chart(fig, use_container_width=True)
+                        st.json(output)
             else:
                 pass
     else:
-        pass
+        file_type = st.selectbox("Data File Type", ("Select a type","CSV","XLSX"))
+        if file_type != "Select a type":
+            dfs = extract_files(file_type)
+            if dfs is not None:
+                for df in dfs:
+                    st.write(df)
+            
+        
 
 if __name__ == "__main__":
     landing_page()
