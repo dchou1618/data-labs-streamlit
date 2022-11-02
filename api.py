@@ -43,9 +43,18 @@ import certifi
 import definitions
 
 
+import streamlit as st
+
 num_summaries = 0
 
-sm_nlp = spacy.load("en_core_web_sm")
+# load the pipeline once
+@st.cache(allow_output_mutation=True)
+def load_en_core_sm(name):
+    sm_nlp = spacy.load(name)
+    return sm_nlp
+
+sm_nlp = load_en_core_sm("en_core_web_sm")
+
 entities = set(sm_nlp.get_pipe("ner").labels)
 #app = Flask(__name__)
 
@@ -59,8 +68,8 @@ entities = set(sm_nlp.get_pipe("ner").labels)
 
 '''
 Definition of a product -- has a name, price, description and
-
 '''
+
 class Product(Resource):
     def __init__(self,name,desc,_id,price,weight=None):
         self.name = name
@@ -68,6 +77,7 @@ class Product(Resource):
         self._id = _id
         self.price = price
         self.weight = weight
+
 # curl -H "Content-Type: application/json" -X GET "http://127.0.0.1:5000/?name=sue"
 # argument is typically ?name=sue.
 
@@ -164,7 +174,7 @@ def iterate_over_wiki_instances(title_embedding,original_title, word, max_num, s
     end tokens: <s> and </s>.
     '''
     summaries = []
-    #print(original_title, word, sm_nlp(word)[0].lemma_)
+
     global num_summaries
     if (num_summaries > max_num or word in seen_pages or len(seen_pages) > 50):
         return []
@@ -178,7 +188,7 @@ def iterate_over_wiki_instances(title_embedding,original_title, word, max_num, s
             using_lemma = True
         except:
             content = wikipedia.summary(word, sentences=5).split("\n")
-        #print(f"#### Works {original_title}, {word} \n\n",content,"\n\n####")
+
         '''
         print("##############")
         print(f"Word: {word}, {sm_nlp(word)[0].lemma_}",
@@ -211,8 +221,9 @@ def iterate_over_wiki_instances(title_embedding,original_title, word, max_num, s
             if len(token_embeddings) > 0:
                 summaries.append([title_embedding,original_title, word, [passage],
                                      [token.text for token in tokenized_passage], token_embeddings])
-        # print("Content: ",content)        
-    except wikipedia.exceptions.DisambiguationError as e:
+    
+    # wikipedia.exceptions.DisambiguationError
+    except Exception as e:
         print("Error: ",e,original_title, word, sm_nlp(word)[0].lemma_)
         summaries = []
         try: 
@@ -264,6 +275,11 @@ def average_pooling(doc, token_embeddings, tokenizer):
         
     return embeddings
 
+#@st.cache(allow_output_mutation=True)
+#def load_tokenizer(model_id):
+#    return AutoTokenizer.from_pretrained(model_id)
+
+
 '''
 :brief: get_embeddings uses embeddings trained at the same time as 
 a neural network was trained. Namely, bert base's uncased model 
@@ -305,7 +321,9 @@ def get_embeddings(name,model_id, database, using_api=False, **kwargs):
         doc = sm_nlp(resp["description"])
     relevant_lists = dict()
     token_embeddings = txt_to_embeddings(doc.text)[0]
+    print("Before loading")
     tokenizer = AutoTokenizer.from_pretrained(model_id)
+    print("After loading")
     token_embeddings = average_pooling(doc, token_embeddings, tokenizer)
     # print(len(token_embeddings), [len(embed) for embed in token_embeddings])
     for sent in doc.sents:
