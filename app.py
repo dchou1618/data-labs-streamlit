@@ -2,7 +2,6 @@ import streamlit as st
 import base64
 import pymongo
 import certifi
-import allocate_features
 import pandas as pd
 import plotly.express as px
 
