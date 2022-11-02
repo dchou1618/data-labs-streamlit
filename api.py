@@ -311,7 +311,7 @@ def get_embeddings(name,model_id, database, using_api=False, **kwargs):
     txt_to_embeddings = pipeline("feature-extraction", model=model_id)
 
     resp = usr_collection.find_one({"name":name})
-    logging.warning(str(resp))
+
     if resp is None:
         if "description" in kwargs:
             doc = sm_nlp(kwargs["description"])
