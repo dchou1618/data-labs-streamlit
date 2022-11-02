@@ -37,7 +37,7 @@ def landing_page():
         """
     )
     feature = st.selectbox("What toolkit feature do you want to try out?",
-              ("Embedding Evaluation"))
+              ("Embedding Evaluation",))
     if feature == "Embedding Evaluation":
         p = base64.b64decode("YnJkMzgyMjM=").decode("utf-8")
         client_url = f"mongodb+srv://dchou_admin:{p}@cluster0.4l7x9tz.mongodb.net/?retryWrites=true&w=majority"
