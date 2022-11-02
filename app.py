@@ -71,6 +71,7 @@ def landing_page():
                         df = pd.DataFrame(df)
                         print(df)
                         fig = px.scatter_3d(df, x="dim1",y="dim2",z="dim3",color="label")
+                        fig.show()
                         st.plotly_chart(fig, use_container_width=True)
                         st.json(output)
             else:
