@@ -1,11 +1,11 @@
 streamlit==1.8.1
 transformers==4.23.1
-spacy==3.4.2
+spacy==3.3.0
 wikipedia==1.4.0
 english-words==1.1.0
 num2words==0.5.12
 pymongo==4.3.2
-prefect==2.6.5
+prefect==2.0.0
 protobuf==3.19.1
 python-dotenv==0.21.0
 Flask==2.2.2
