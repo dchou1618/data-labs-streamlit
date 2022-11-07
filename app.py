@@ -69,7 +69,7 @@ def landing_page():
                                      df["label"].append(word.lower())
                                      df["context"].append(vect["tokenized_passage"])
                         df = pd.DataFrame(df)
-                        print("df",df)
+                        
                         fig = px.scatter_3d(df, x="dim1",y="dim2",z="dim3",color="label")
                         fig.show()
                         st.plotly_chart(fig, use_container_width=True)

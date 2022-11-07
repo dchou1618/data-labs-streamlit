@@ -38,6 +38,7 @@ from flask_restful import Api, reqparse, abort, fields, marshal_with, Resource
 from flask_mongoengine import MongoEngine
 from flask_graphql import GraphQLView
 import certifi
+import pandas as pd
 
 # Schema definitions
 import definitions
@@ -215,8 +216,10 @@ def iterate_over_wiki_instances(title_embedding,original_title, word, max_num, s
                 lower_original = original_title.lower()
                 if ((sm_nlp(lower_token)[0].lemma_ == sm_nlp(lower_original)[0].lemma_) if\
                     using_lemma else lower_token == lower_original):
-                    print("Found token position for",str(token))
-                    token_embeddings.append((i,passage_embedding[i]))
+                    #print("Passage Embedding",passage,token,passage_embedding[i][:20])
+                    #print("Found token position for",str(token))
+                    if not any(pd.isna(x) for x in passage_embedding[i]):
+                        token_embeddings.append((i,passage_embedding[i]))
                 i += 1
             if len(token_embeddings) > 0:
                 summaries.append([title_embedding,original_title, word, [passage],
@@ -321,17 +324,15 @@ def get_embeddings(name,model_id, database, using_api=False, **kwargs):
         doc = sm_nlp(resp["description"])
     relevant_lists = dict()
     token_embeddings = txt_to_embeddings(doc.text)[0]
-    print("Before loading")
     tokenizer = AutoTokenizer.from_pretrained(model_id)
-    print("After loading")
     token_embeddings = average_pooling(doc, token_embeddings, tokenizer)
+    #print(token_embeddings)
     # print(len(token_embeddings), [len(embed) for embed in token_embeddings])
     for sent in doc.sents:
         for token in sent:
             #token_embedding = query_model_id(str(token), api_url, headers)
             # print("Document: "+doc.text+"\n\n")
             token_embedding = token_embeddings[token.i]
-
             #print(token, token.ent_type_, entities, token.pos_)
             if token.ent_type_ in entities or token.pos_ in {"NOUN", "ADJ"}:
                 global num_summaries 
