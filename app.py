@@ -4,6 +4,9 @@ import pymongo
 import certifi
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
+
+from streamlit_tags import st_tags
 
 import api
 
@@ -26,6 +29,13 @@ def extract_files(file_type):
     return dfs, df_names
 
 
+def get_dimension_barplot(dim,list_of_embeddings):
+    fig = go.Figure()  
+    dims = [str(d+1) for d in range(dim)]
+    for i,embedding in enumerate(list_of_embeddings):
+        fig.add_trace(go.Bar(x=dims, y=[x if x >= 0 else 0 for x in embedding],
+                             name=f"Instance {i+1}"))
+    return fig
 
 
 def landing_page():
@@ -37,7 +47,7 @@ def landing_page():
         """
     )
     feature = st.selectbox("What toolkit feature do you want to try out?",
-              ("Embedding Evaluation",))
+              ("Embedding Evaluation","Polar Opposites Word Senses"))
     if feature == "Embedding Evaluation":
         p = base64.b64decode("YnJkMzgyMjM=").decode("utf-8")
         client_url = f"mongodb+srv://dchou_admin:{p}@cluster0.4l7x9tz.mongodb.net/?retryWrites=true&w=majority"
@@ -71,10 +81,31 @@ def landing_page():
                         df = pd.DataFrame(df)
                         
                         fig = px.scatter_3d(df, x="dim1",y="dim2",z="dim3",color="label")
-                        fig.show()
                         st.plotly_chart(fig, use_container_width=True)
                         st.json(output) 
-        
+    else:
+        model_url = st.selectbox("Huggingface Model",
+("Select a Model","allenai/specter","xlnet-base-cased",\
+        "bert-base-cased", "roberta-large","facebook/contriever-msmarco"))
+        token1 = st_tags(label='# Enter first keyword',
+                         text='Enter one keyword.',
+                         maxtags = 1) 
+        token2 = st_tags(label="# Enter polar opposite keyword",
+                         text="Enter one keyword.",
+                         maxtags = 1)
+        if model_url != "Select a Model" and len(token1) == 1 and len(token2) == 1:
+            with st.form("polar opposite"):
+                text1 = st.text_area(f"Text for {token1[0]}","""""")
+                text2 = st.text_area(f"Text for {token2[0]}","""""")
+                clicked = st.form_submit_button("Verify Polar Opposite Interpretability in Vector Dimensions")
+                if len(text1) > 0 and len(text2) > 0 and clicked:
+                    output = api.compare_polar_opposites(token1[0], text1, token2[0], text2, model_url)
+                    fig1 = get_dimension_barplot(len(output[0][0]),output[0])
+                    fig2 = get_dimension_barplot(len(output[1][0]),output[1])
+                    
+                    st.plotly_chart(fig1, use_container_width=True)
+                    st.plotly_chart(fig2, use_container_width=True)
+
 
 if __name__ == "__main__":
     landing_page()

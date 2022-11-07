@@ -278,9 +278,39 @@ def average_pooling(doc, token_embeddings, tokenizer):
         
     return embeddings
 
-#@st.cache(allow_output_mutation=True)
-#def load_tokenizer(model_id):
-#    return AutoTokenizer.from_pretrained(model_id)
+def run_embeddings_for_word(txt_to_embeddings, tokenizer, texts, token1):
+    doc = sm_nlp(texts)
+    token_embedding = txt_to_embeddings(doc.text)[0]
+    token_embedding = average_pooling(doc, token_embedding, tokenizer)
+    token_embeddings = []    
+    for sent in doc.sents:
+        for token in sent:    
+            if token1.lower() == token.text.lower():
+                token_embeddings.append(token_embedding[token.i])
+                break
+    return token_embeddings
+
+#https://dl.acm.org/doi/abs/10.1145/3366423.3380227?casa_token=5IHmDnDhgX0AAAAA:GiKepf7xwlKswTVo_fFthCBQCkWZVy8BMUthBdeDZmbo0Y4gbXnzqQSw-UP77p1esGM9G-IJ_hBRpg
+def compare_polar_opposites(token1, texts1, token2, texts2, model_id):
+    '''
+    compare_polar_opposite - based on the above paper, we use semantic differentials from
+    Osgood, Charles Egerton, George J. Suci, and Percy H. Tannenbaum. The measurement of meaning. No. 47. University of Illinois press, 1957.
+    
+    The function is intended to verify whether non-negative dimensions of one vector is associated with one topic. 
+    :param texts1 str:
+    :param texts2 str:
+    :return:
+    '''
+    token1 = token1.lower()
+    token2 = token2.lower()
+    
+    txt_to_embeddings = pipeline("feature-extraction", model=model_id)
+    tokenizer = AutoTokenizer.from_pretrained(model_id)    
+
+    token_embeddings1 = run_embeddings_for_word(txt_to_embeddings, tokenizer, texts1, token1)
+    token_embeddings2 = run_embeddings_for_word(txt_to_embeddings, tokenizer, texts2, token2)
+    
+    return token_embeddings1, token_embeddings2
 
 
 '''
