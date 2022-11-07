@@ -73,23 +73,7 @@ def landing_page():
                         fig = px.scatter_3d(df, x="dim1",y="dim2",z="dim3",color="label")
                         fig.show()
                         st.plotly_chart(fig, use_container_width=True)
-                        st.json(output)
-            else:
-                pass
-    
-   # else:
-   #     file_type = st.selectbox("Data File Type", ("Select a type","CSV","XLSX"))
-   #     if file_type != "Select a type":
-   #         dfs, df_names = extract_files(file_type)
-   #         if dfs is not None:
-   #             
-   #             with st.form("get_resource_memories"):
-   #                 feature_gain_per_column = st.file_uploader("Upload CSV with feature gains and assigned resource in datasets")
-   #                 clicked = st.form_submit_button("Get Feature Allocation Across Resources")
-   #                 if clicked and feature_gain_per_column is not None:
-   #                     st.write(allocate_features.allocate_features(dfs,df_names))
-   #             
-   
+                        st.json(output) 
         
 
 if __name__ == "__main__":
