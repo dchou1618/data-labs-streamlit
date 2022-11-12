@@ -30,6 +30,8 @@ import requests
 from tqdm import tqdm
 from dotenv import dotenv_values
 from transformers import AutoTokenizer
+from collections import defaultdict
+
 
 # MongoDB & Flask application
 import pymongo
@@ -216,8 +218,7 @@ def iterate_over_wiki_instances(title_embedding,original_title, word, max_num, s
                 lower_original = original_title.lower()
                 if ((sm_nlp(lower_token)[0].lemma_ == sm_nlp(lower_original)[0].lemma_) if\
                     using_lemma else lower_token == lower_original):
-                    #print("Passage Embedding",passage,token,passage_embedding[i][:20])
-                    #print("Found token position for",str(token))
+
                     if not any(pd.isna(x) for x in passage_embedding[i]):
                         token_embeddings.append((i,passage_embedding[i]))
                 i += 1
@@ -259,6 +260,7 @@ def average_pooling(doc, token_embeddings, tokenizer):
     for token in doc:
         start = token.idx
         end = start+len(token.text)
+
         if i == len(tokenizer_bpe):
             break
         curr_range = tokenizer_bpe[i]
@@ -267,31 +269,42 @@ def average_pooling(doc, token_embeddings, tokenizer):
             curr_range = tokenizer_bpe[i]
             # print("current range and start/end index: ",curr_range,start,end)
             i+=1
-            if curr_range[1] == curr_range[0]:
+            if curr_range[1] == curr_range[0] and i==1:
                 first_embedding = i
-        i-=1
+        i -=1
         last_embedding = i
+        # print("First/last: ",first_embedding, last_embedding)
+        
+        # if the BERT tokens are not broken up into individual
+        # tokens, we add 1 to the last embedding
+
         curr_embeddings = token_embeddings[first_embedding:last_embedding]
-        # print("Pooling indices: ", token, len(curr_embeddings), first_embedding, last_embedding)
+
+        
         mean_pooled_embedding = np.sum(curr_embeddings,axis=0)/len(curr_embeddings)
         embeddings.append(mean_pooled_embedding)
         
     return embeddings
 
-def run_embeddings_for_word(txt_to_embeddings, tokenizer, texts, token1):
+def run_embeddings_for_word(txt_to_embeddings, tokenizer, texts, token_to_embeddings_dict):
     doc = sm_nlp(texts)
-    token_embedding = txt_to_embeddings(doc.text)[0]
-    token_embedding = average_pooling(doc, token_embedding, tokenizer)
-    token_embeddings = []    
     for sent in doc.sents:
-        for token in sent:    
-            if token1.lower() == token.text.lower():
-                token_embeddings.append(token_embedding[token.i])
-                break
-    return token_embeddings
+        token_embedding = txt_to_embeddings(sent.text)[0]
+        curr_sent = sm_nlp(sent.text)
+        token_embedding = average_pooling(curr_sent, token_embedding, tokenizer) 
+        # print(len(sent), len(token_embedding))
+        for i,token in enumerate(sent):    
+            for token1 in token_to_embeddings_dict:
+                if token1.lower() == token.text.lower():
+                    #print(token, token_embedding[i])
+                    token_to_embeddings_dict[token1.lower()].append(token_embedding[i])
+                    break
+    return token_to_embeddings_dict
+
+
 
 #https://dl.acm.org/doi/abs/10.1145/3366423.3380227?casa_token=5IHmDnDhgX0AAAAA:GiKepf7xwlKswTVo_fFthCBQCkWZVy8BMUthBdeDZmbo0Y4gbXnzqQSw-UP77p1esGM9G-IJ_hBRpg
-def compare_polar_opposites(token1, texts1, token2, texts2, model_id):
+def compare_polar_opposites(token_polars, texts1, texts2, model_id):
     '''
     compare_polar_opposite - based on the above paper, we use semantic differentials from
     Osgood, Charles Egerton, George J. Suci, and Percy H. Tannenbaum. The measurement of meaning. No. 47. University of Illinois press, 1957.
@@ -301,16 +314,41 @@ def compare_polar_opposites(token1, texts1, token2, texts2, model_id):
     :param texts2 str:
     :return:
     '''
-    token1 = token1.lower()
-    token2 = token2.lower()
-    
     txt_to_embeddings = pipeline("feature-extraction", model=model_id)
-    tokenizer = AutoTokenizer.from_pretrained(model_id)    
-
-    token_embeddings1 = run_embeddings_for_word(txt_to_embeddings, tokenizer, texts1, token1)
-    token_embeddings2 = run_embeddings_for_word(txt_to_embeddings, tokenizer, texts2, token2)
+    tokenizer = AutoTokenizer.from_pretrained(model_id)
+    token_to_embeddings_dict = defaultdict(dict)
+    polar_opposites_dict = dict()
+    for tokens in token_polars:
+        token1, token2 = tokens.split("/")
+        token1 = token1.lower()
+        token1 = sm_nlp(token1)[0].lemma_
+        token2 = token2.lower()
+        token2 = sm_nlp(token2)[0].lemma_
+        token_to_embeddings_dict[token1] = []
+        token_to_embeddings_dict[token2] = []
+        polar_opposites_dict[token1] = token2
     
-    return token_embeddings1, token_embeddings2
+    token_to_embeddings_dict = run_embeddings_for_word(txt_to_embeddings, tokenizer,\
+                                                texts1+" "+texts2, token_to_embeddings_dict)
+    diffs = []
+    dim_names = []
+    for token1, token2 in polar_opposites_dict.items():
+        diff = np.mean(np.array(token_to_embeddings_dict[token1]),axis=0)-\
+               np.mean(np.array(token_to_embeddings_dict[token2]), axis=0)
+        diffs.append(diff)
+        dim_names.append(token1+"/"+token2)
+    diffs = np.transpose(np.array(diffs))
+    vocab_embeddings = np.array([])
+    names = list(token_to_embeddings_dict.keys())
+    
+    for token in names:
+        mean_embedding = np.mean(np.array(token_to_embeddings_dict[token]),axis=0)
+        if len(vocab_embeddings) == 0:
+            vocab_embeddings = mean_embedding
+        else:
+            vocab_embeddings = np.vstack((vocab_embeddings, mean_embedding))
+    vocab_embeddings = np.matmul(vocab_embeddings, diffs)
+    return vocab_embeddings, names, dim_names
 
 
 '''
@@ -356,18 +394,13 @@ def get_embeddings(name,model_id, database, using_api=False, **kwargs):
     token_embeddings = txt_to_embeddings(doc.text)[0]
     tokenizer = AutoTokenizer.from_pretrained(model_id)
     token_embeddings = average_pooling(doc, token_embeddings, tokenizer)
-    #print(token_embeddings)
-    # print(len(token_embeddings), [len(embed) for embed in token_embeddings])
     for sent in doc.sents:
         for token in sent:
             #token_embedding = query_model_id(str(token), api_url, headers)
-            # print("Document: "+doc.text+"\n\n")
             token_embedding = token_embeddings[token.i]
-            #print(token, token.ent_type_, entities, token.pos_)
             if token.ent_type_ in entities or token.pos_ in {"NOUN", "ADJ"}:
                 global num_summaries 
                 num_summaries = 0
-                # print("Token: "+str(token)+"\n\n")
                 relevant_contents = iterate_over_wiki_instances(token_embedding, str(token),
                                                                 str(token), 20, set(), {"api_url":api_url,\
                                                                 "headers":headers,"tokenizer":tokenizer})\
@@ -377,7 +410,6 @@ def get_embeddings(name,model_id, database, using_api=False, **kwargs):
                                                                 "txt_to_embeddings":txt_to_embeddings})
                 if len(relevant_contents) > 0:
                     relevant_lists[str(token)] = relevant_contents
-    # print(relevant_lists)
     relevant_lists = embedding_dim_reduction(relevant_lists)
     if resp is None:
         resp = {"model_id":model_id,"description":kwargs["description"],
