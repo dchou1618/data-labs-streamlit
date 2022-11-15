@@ -1,5 +1,5 @@
 # Summary
-Streamlit landing page that redirects from NLP ML Toolkit intro page - `https://ml-interpretable.herokuapp.com/` *Note: not the latest site*.
+Streamlit landing page that redirects from NLP ML Toolkit intro page - https://ml-interpretable.herokuapp.com/ *Note: not the latest site*.
 
 # Features
 
