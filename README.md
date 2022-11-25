@@ -9,4 +9,4 @@ Streamlit landing page that redirects from NLP ML Toolkit intro page - https://m
 
 # Conclusions
 
-* The tool reveals that whether or not polar opposite embedding dimensions are well-defined (Alaska having a higher absolute coefficient for cold-hot dimension) depends on the original embeddings. We may want to look into what makes certain embeddings better than others.
+* The tool reveals that whether or not polar opposite embedding dimensions are well-defined (Alaska having a higher absolute coefficient for cold-hot dimension) depends on the original embeddings. We may want to look into what makes certain embeddings better than others at having more pronounced polar opposite dimensions. For instance, the facebook word embedding in the tool is much better at having a specific polar opposite associated with a term than the roberta embeddings.
