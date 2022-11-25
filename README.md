@@ -1,5 +1,5 @@
 # Summary
-Streamlit landing page that redirects from NLP ML Toolkit intro page - https://ml-interpretable.herokuapp.com/ *Note: not the latest site*.
+Streamlit landing page that redirects from NLP ML Toolkit intro page - https://ml-interpretable.herokuapp.com/ *Note: site not updated regularly*.
 
 # Features
 
@@ -7,3 +7,6 @@ Streamlit landing page that redirects from NLP ML Toolkit intro page - https://m
 
 * Polar Opposite Visualization - Compare the effects of polar opposite directional vector transformations on different feature extraction embeddings for interpretability.
 
+# Conclusions
+
+* The tool reveals that whether or not polar opposite embedding dimensions are well-defined (Alaska having a higher absolute coefficient for cold-hot dimension) depends on the original embeddings. We may want to look into what makes certain embeddings better than others.
